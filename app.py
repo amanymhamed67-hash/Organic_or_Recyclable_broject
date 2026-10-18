@@ -2,14 +2,14 @@ import numpy as np
 import streamlit as st
 import tensorflow as tf
 from PIL import Image
-from huggingface_hub import hf_hub_download
+from huggingface_hub import HfApi, hf_hub_download
 
-IMG_SIZE = (150, 150)                            
-PREPROCESS = "rescale"                             
-THRESHOLD = 0.5                                     
-LOW_CONFIDENCE = 0.65               
-
-
+# ---------------- CONFIG ----------------
+HF_REPO_ID = "amany30/waste_Classifier"   # اسم الـ repo على Hugging Face
+IMG_SIZE = (150, 150)
+PREPROCESS = "rescale"                    # "rescale" (القسمة على 255) أو "vgg16"
+THRESHOLD = 0.5
+LOW_CONFIDENCE = 0.65
 
 LABELS = {
     "O": {"name": "Organic", "emoji": "🍃", "tip": "Compost it or put it in the organic waste bin."},
@@ -18,12 +18,11 @@ LABELS = {
 
 APP_TITLE = "Waste Classifier"
 APP_SUBTITLE = "Upload or snap a photo, and the model will tell you whether it is organic or recyclable."
-GITHUB_URL = ""  
-# ══════════════════════════════════════════════════════════
+GITHUB_URL = ""
+# ----------------------------------------
 
 st.set_page_config(page_title=APP_TITLE, page_icon="♻️", layout="centered")
 
-# ── Styling (works in light & dark mode) ──
 st.markdown(
     """
     <style>
@@ -48,11 +47,16 @@ st.markdown(
 
 @st.cache_resource(show_spinner="Loading model…")
 def load_model():
-       path = hf_hub_download(repo_id="amany30/waste_Classifier", filename="O_R_model_small.keras" )
-       return tf.keras.models.load_model(path)
+    # يدوّر لوحده على أي ملف .keras داخل الـ repo، فمفيش مشكلة في اسم الملف
+    files = HfApi().list_repo_files(HF_REPO_ID)
+    keras_files = [f for f in files if f.endswith(".keras")]
+    if not keras_files:
+        raise FileNotFoundError("No .keras file found in the Hugging Face repo.")
+    path = hf_hub_download(repo_id=HF_REPO_ID, filename=keras_files[0])
+    return tf.keras.models.load_model(path)
 
 
-def preprocess(img: Image.Image) -> np.ndarray:
+def preprocess(img):
     arr = np.array(img.convert("RGB").resize(IMG_SIZE), dtype="float32")
     if PREPROCESS == "vgg16":
         from tensorflow.keras.applications.vgg16 import preprocess_input
@@ -62,14 +66,14 @@ def preprocess(img: Image.Image) -> np.ndarray:
     return np.expand_dims(arr, axis=0)
 
 
-def predict(model, img: Image.Image):
-    p = float(model.predict(preprocess(img), verbose=0)[0][0])  # probability of class R
+def predict(model, img):
+    p = float(model.predict(preprocess(img), verbose=0)[0][0])
     key = "R" if p >= THRESHOLD else "O"
     confidence = p if key == "R" else 1 - p
     return key, confidence
 
 
-# ── Sidebar ──
+# ---------------- Sidebar ----------------
 with st.sidebar:
     st.header("About")
     st.write(
@@ -91,30 +95,32 @@ with st.sidebar:
     if GITHUB_URL:
         st.link_button("View on GitHub", GITHUB_URL)
 
-# ── Header ──
+# ---------------- Header ----------------
 st.markdown(
     f'<div class="hero"><h1>♻️ {APP_TITLE}</h1><p>{APP_SUBTITLE}</p></div>',
     unsafe_allow_html=True,
 )
 
-# ── Load model (with a friendly error) ──
+# ---------------- Load model ----------------
 try:
     model = load_model()
 except Exception as e:
-    st.error("Could not load the model from Hugging Face. Check the repo and file name in load_model().")
+    st.error("Could not load the model from Hugging Face.")
     st.caption(str(e))
     st.stop()
 
-# ── Input ──
+# ---------------- Input ----------------
 tab_upload, tab_camera = st.tabs(["📁 Upload image", "📷 Use camera"])
 with tab_upload:
-    uploaded = st.file_uploader("Choose a photo", type=["jpg", "jpeg", "png"], label_visibility="collapsed")
+    uploaded = st.file_uploader(
+        "Choose a photo", type=["jpg", "jpeg", "png"], label_visibility="collapsed"
+    )
 with tab_camera:
     snapshot = st.camera_input("Take a photo", label_visibility="collapsed")
 
 source = uploaded or snapshot
 
-# ── Result ──
+# ---------------- Result ----------------
 if source is not None:
     image = Image.open(source)
     st.image(image, use_container_width=True)
