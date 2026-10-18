@@ -2,9 +2,9 @@ import numpy as np
 import streamlit as st
 import tensorflow as tf
 from PIL import Image
+from huggingface_hub import hf_hub_download
 
-
-MODEL_PATH = "O_R_tlearn_vgg16.keras" 
+MODEL_PATH = "O_R_model_small.keras" 
 IMG_SIZE = (150, 150)                            
 PREPROCESS = "rescale"                             
 THRESHOLD = 0.5                                     
@@ -49,7 +49,8 @@ st.markdown(
 
 @st.cache_resource(show_spinner="Loading model…")
 def load_model():
-    return tf.keras.models.load_model(MODEL_PATH)
+       path = hf_hub_download(repo_id="Organic_or_Recyclable_broject", filename="MODEL_PATH")
+       return tf.keras.models.load_model(path)
 
 
 def preprocess(img: Image.Image) -> np.ndarray:
