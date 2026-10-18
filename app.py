@@ -49,7 +49,7 @@ st.markdown(
 
 @st.cache_resource(show_spinner="Loading model…")
 def load_model():
-       path = hf_hub_download(repo_id="Organic_or_Recyclable_broject", filename="MODEL_PATH")
+       path = hf_hub_download(repo_id="amany30/waste_Classifier", filename="MODEL_PATH")
        return tf.keras.models.load_model(path)
 
 
