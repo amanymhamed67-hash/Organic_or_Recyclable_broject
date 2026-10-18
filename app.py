@@ -101,7 +101,7 @@ st.markdown(
 try:
     model = load_model()
 except Exception as e:
-   st.error("Could not load the model from Hugging Face. Check the repo and file name in load_model().")
+    st.error("Could not load the model from Hugging Face. Check the repo and file name in load_model().")
     st.caption(str(e))
     st.stop()
 
