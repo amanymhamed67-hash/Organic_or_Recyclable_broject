@@ -4,7 +4,6 @@ import tensorflow as tf
 from PIL import Image
 from huggingface_hub import hf_hub_download
 
-MODEL_PATH = "O_R_model_small.keras" 
 IMG_SIZE = (150, 150)                            
 PREPROCESS = "rescale"                             
 THRESHOLD = 0.5                                     
@@ -49,7 +48,7 @@ st.markdown(
 
 @st.cache_resource(show_spinner="Loading model…")
 def load_model():
-       path = hf_hub_download(repo_id="amany30/waste_Classifier", filename=MODEL_PATH)
+       path = hf_hub_download(repo_id="amany30/waste_Classifier", filename="O_R_model_small.keras" )
        return tf.keras.models.load_model(path)
 
 
